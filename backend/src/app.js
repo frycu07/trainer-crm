@@ -17,13 +17,18 @@ const { createPackagesRepository } = require("./modules/packages/packages.reposi
 const { createPackagesService } = require("./modules/packages/packages.service");
 const { createPackagesController } = require("./modules/packages/packages.controller");
 const { createPackagesRouter } = require("./modules/packages/packages.routes");
+
+const { createSessionsRepository } = require("./modules/sessions/sessions.repository");
+const { createSessionsService } = require("./modules/sessions/sessions.service");
+const { createSessionsController } = require("./modules/sessions/sessions.controller");
+const { createSessionsRouter } = require("./modules/sessions/sessions.routes");
 const { createAuthService } = require("./modules/auth/auth.service");
 const { createAuthController } = require("./modules/auth/auth.controller");
 const { createAuthRouter } = require("./modules/auth/auth.routes");
 
 // buduje aplikacje, ale jej nie uruchamia (listen jest w server.js)
-// config i db przychodza jako parametry - app nie czyta process.env
-function createApp({ config, db }) {
+// config, db i now przychodza jako parametry - app nie czyta process.env, a testy moga ustawic "dzisiaj"
+function createApp({ config, db, now = () => new Date() }) {
   const app = express();
 
   app.use(express.json());
@@ -45,6 +50,9 @@ function createApp({ config, db }) {
   const packagesRepository = createPackagesRepository(db);
   const packagesService = createPackagesService({ packagesRepository, clientsService });
 
+  const sessionsRepository = createSessionsRepository(db);
+  const sessionsService = createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, now });
+
   // publiczne: health i logowanie (/me ma authenticate w routerze)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -56,6 +64,7 @@ function createApp({ config, db }) {
   app.use("/api/users", createUsersRouter(createUsersController(usersService)));
   app.use("/api/clients", createClientsRouter(createClientsController(clientsService)));
   app.use("/api/packages", createPackagesRouter(createPackagesController(packagesService)));
+  app.use("/api/sessions", createSessionsRouter(createSessionsController(sessionsService)));
 
   // kolejnosc ma znaczenie: najpierw 404 dla nieznanych sciezek, na samym koncu error handler
   app.use(notFound);
