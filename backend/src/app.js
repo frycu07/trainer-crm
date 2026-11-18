@@ -12,6 +12,11 @@ const { createClientsRepository } = require("./modules/clients/clients.repositor
 const { createClientsService } = require("./modules/clients/clients.service");
 const { createClientsController } = require("./modules/clients/clients.controller");
 const { createClientsRouter } = require("./modules/clients/clients.routes");
+
+const { createPackagesRepository } = require("./modules/packages/packages.repository");
+const { createPackagesService } = require("./modules/packages/packages.service");
+const { createPackagesController } = require("./modules/packages/packages.controller");
+const { createPackagesRouter } = require("./modules/packages/packages.routes");
 const { createAuthService } = require("./modules/auth/auth.service");
 const { createAuthController } = require("./modules/auth/auth.controller");
 const { createAuthRouter } = require("./modules/auth/auth.routes");
@@ -37,6 +42,9 @@ function createApp({ config, db }) {
   const clientsRepository = createClientsRepository(db);
   const clientsService = createClientsService({ clientsRepository });
 
+  const packagesRepository = createPackagesRepository(db);
+  const packagesService = createPackagesService({ packagesRepository, clientsService });
+
   // publiczne: health i logowanie (/me ma authenticate w routerze)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -47,6 +55,7 @@ function createApp({ config, db }) {
   app.use("/api", requireAuth);
   app.use("/api/users", createUsersRouter(createUsersController(usersService)));
   app.use("/api/clients", createClientsRouter(createClientsController(clientsService)));
+  app.use("/api/packages", createPackagesRouter(createPackagesController(packagesService)));
 
   // kolejnosc ma znaczenie: najpierw 404 dla nieznanych sciezek, na samym koncu error handler
   app.use(notFound);
