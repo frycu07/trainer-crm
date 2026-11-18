@@ -7,6 +7,11 @@ const { createUsersRepository } = require("./modules/users/users.repository");
 const { createUsersService } = require("./modules/users/users.service");
 const { createUsersController } = require("./modules/users/users.controller");
 const { createUsersRouter } = require("./modules/users/users.routes");
+
+const { createClientsRepository } = require("./modules/clients/clients.repository");
+const { createClientsService } = require("./modules/clients/clients.service");
+const { createClientsController } = require("./modules/clients/clients.controller");
+const { createClientsRouter } = require("./modules/clients/clients.routes");
 const { createAuthService } = require("./modules/auth/auth.service");
 const { createAuthController } = require("./modules/auth/auth.controller");
 const { createAuthRouter } = require("./modules/auth/auth.routes");
@@ -29,6 +34,9 @@ function createApp({ config, db }) {
 
   const usersService = createUsersService({ usersRepository, bcryptRounds: config.BCRYPT_ROUNDS });
 
+  const clientsRepository = createClientsRepository(db);
+  const clientsService = createClientsService({ clientsRepository });
+
   // publiczne: health i logowanie (/me ma authenticate w routerze)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -38,6 +46,7 @@ function createApp({ config, db }) {
   // wszystko ponizej wymaga tokenu - nowego endpointu nie da sie "zapomniec" zabezpieczyc
   app.use("/api", requireAuth);
   app.use("/api/users", createUsersRouter(createUsersController(usersService)));
+  app.use("/api/clients", createClientsRouter(createClientsController(clientsService)));
 
   // kolejnosc ma znaczenie: najpierw 404 dla nieznanych sciezek, na samym koncu error handler
   app.use(notFound);
