@@ -1,6 +1,6 @@
-const { NotFoundError } = require("../../errors/AppError");
+const { NotFoundError, ConflictError } = require("../../errors/AppError");
 
-function createClientsService({ clientsRepository }) {
+function createClientsService({ clientsRepository, sessionsRepository }) {
   // klient istnieje i nalezy do trenera (albo user jest ADMINem); w przeciwnym razie 404
   // cudzy klient = 404, a nie 403 - nie zdradzamy, ze taki zasob istnieje
   async function findAccessibleClient(id, currentUser) {
@@ -31,6 +31,12 @@ function createClientsService({ clientsRepository }) {
 
   async function remove(id, currentUser) {
     await findAccessibleClient(id, currentUser);
+
+    // R6: klienta z zaplanowanymi treningami nie usuwamy - najpierw trzeba je odwolac albo zakonczyc
+    if (await sessionsRepository.countScheduledByClient(id) > 0) {
+      throw new ConflictError("Client has scheduled sessions", "CLIENT_HAS_SCHEDULED_SESSIONS");
+    }
+
     await clientsRepository.remove(id);
   }
 

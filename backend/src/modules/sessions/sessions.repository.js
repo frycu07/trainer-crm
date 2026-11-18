@@ -93,6 +93,38 @@ function createSessionsRepository(db) {
     async updateNotes(id, notes) {
       await db("training_sessions").where({ id }).update({ notes });
       return findById(id);
+    },
+
+    async updateStatus(id, status) {
+      await db("training_sessions").where({ id }).update({ status });
+      return findById(id);
+    },
+
+    // odwolanie treningu i zwrot wejscia do pakietu w jednej transakcji
+    async cancelAndReleasePackage(id, packageId) {
+      await db.transaction(async trx => {
+        // warunek status = SCHEDULED: dwa rownolegle odwolania nie zwroca wejscia dwa razy
+        const updated = await trx("training_sessions")
+          .where({ id, status: "SCHEDULED" })
+          .update({ status: "CANCELLED" });
+        if (updated === 0) {
+          throw new ConflictError("Session is no longer scheduled", "INVALID_STATUS_TRANSITION");
+        }
+
+        await trx("packages").where({ id: packageId }).decrement("used_sessions", 1);
+      });
+      return findById(id);
+    },
+
+    async remove(id) {
+      return db("training_sessions").where({ id }).del();
+    },
+
+    async countScheduledByClient(clientId) {
+      const [{ count }] = await db("training_sessions")
+        .where({ client_id: clientId, status: "SCHEDULED" })
+        .count("* as count");
+      return Number(count);
     }
   };
 }

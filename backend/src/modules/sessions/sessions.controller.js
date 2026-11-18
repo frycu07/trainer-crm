@@ -25,6 +25,21 @@ function createSessionsController(sessionsService) {
     async updateNotes(req, res) {
       const session = await sessionsService.updateNotes(req.validated.params.id, req.validated.body.notes, req.user);
       res.json(toSessionResponse(session));
+    },
+
+    async complete(req, res) {
+      const session = await sessionsService.complete(req.validated.params.id, req.user);
+      res.json(toSessionResponse(session));
+    },
+
+    async cancel(req, res) {
+      const session = await sessionsService.cancel(req.validated.params.id, req.user);
+      res.json(toSessionResponse(session));
+    },
+
+    async remove(req, res) {
+      await sessionsService.remove(req.validated.params.id);
+      res.status(204).end();
     }
   };
 }

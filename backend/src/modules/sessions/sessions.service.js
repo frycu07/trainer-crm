@@ -1,5 +1,21 @@
 const { NotFoundError, ValidationError, ConflictError } = require("../../errors/AppError");
 
+// R4: dozwolone przejscia statusow - wszystko inne to 409
+const ALLOWED_TRANSITIONS = {
+  SCHEDULED: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
+  CANCELLED: []
+};
+
+// R5: odwolac mozna najpozniej 24 h przed startem
+const CANCELLATION_LIMIT_MS = 24 * 60 * 60 * 1000;
+
+function assertTransition(from, to) {
+  if (!ALLOWED_TRANSITIONS[from].includes(to)) {
+    throw new ConflictError(`Cannot change session status from ${from} to ${to}`, "INVALID_STATUS_TRANSITION");
+  }
+}
+
 // czysta funkcja (bez bazy) - latwa do unit testu
 // pakiet nadaje sie, gdy ma wolne wejscia i jest wazny w dniu treningu; wygrywa ten, ktory wygasa najwczesniej
 function findUsablePackage(packages, startsAt) {
@@ -80,7 +96,35 @@ function createSessionsService({ sessionsRepository, clientsRepository, packages
     return sessionsRepository.updateNotes(id, notes);
   }
 
-  return { schedule, list, getById, updateNotes };
+  async function complete(id, currentUser) {
+    const session = await findAccessibleSession(id, currentUser);
+    assertTransition(session.status, "COMPLETED");
+    return sessionsRepository.updateStatus(id, "COMPLETED");
+  }
+
+  async function cancel(id, currentUser) {
+    const session = await findAccessibleSession(id, currentUser);
+    assertTransition(session.status, "CANCELLED");
+
+    if (session.startsAt.getTime() - now().getTime() < CANCELLATION_LIMIT_MS) {
+      throw new ConflictError("Session can be cancelled at least 24 hours before it starts", "CANCELLATION_TOO_LATE");
+    }
+
+    // zmiana statusu i zwrot wejscia do pakietu - jedna transakcja w repozytorium
+    return sessionsRepository.cancelAndReleasePackage(id, session.packageId);
+  }
+
+  // endpoint tylko dla ADMINa (authorize w routes); usuwamy wylacznie trening, ktory juz nie jest zaplanowany
+  async function remove(id) {
+    const session = await sessionsRepository.findById(id);
+    if (!session) throw new NotFoundError("Session");
+    if (session.status === "SCHEDULED") {
+      throw new ConflictError("Scheduled session must be cancelled or completed before deleting", "SESSION_STILL_SCHEDULED");
+    }
+    await sessionsRepository.remove(id);
+  }
+
+  return { schedule, list, getById, updateNotes, complete, cancel, remove };
 }
 
-module.exports = { createSessionsService, findUsablePackage };
+module.exports = { createSessionsService, findUsablePackage, ALLOWED_TRANSITIONS };

@@ -45,12 +45,12 @@ function createApp({ config, db, now = () => new Date() }) {
   const usersService = createUsersService({ usersRepository, bcryptRounds: config.BCRYPT_ROUNDS });
 
   const clientsRepository = createClientsRepository(db);
-  const clientsService = createClientsService({ clientsRepository });
+  const sessionsRepository = createSessionsRepository(db);
+  const clientsService = createClientsService({ clientsRepository, sessionsRepository });
 
   const packagesRepository = createPackagesRepository(db);
   const packagesService = createPackagesService({ packagesRepository, clientsService });
 
-  const sessionsRepository = createSessionsRepository(db);
   const sessionsService = createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, now });
 
   // publiczne: health i logowanie (/me ma authenticate w routerze)
