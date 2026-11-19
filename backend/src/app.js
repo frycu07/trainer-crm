@@ -22,13 +22,19 @@ const { createSessionsRepository } = require("./modules/sessions/sessions.reposi
 const { createSessionsService } = require("./modules/sessions/sessions.service");
 const { createSessionsController } = require("./modules/sessions/sessions.controller");
 const { createSessionsRouter } = require("./modules/sessions/sessions.routes");
+
+const { createNotificationsRepository } = require("./modules/notifications/notifications.repository");
+const { createNotificationsService } = require("./modules/notifications/notifications.service");
+const { createNotificationsController } = require("./modules/notifications/notifications.controller");
+const { createNotificationsRouter } = require("./modules/notifications/notifications.routes");
+const { registerNotificationListeners } = require("./events/notificationListeners");
 const { createAuthService } = require("./modules/auth/auth.service");
 const { createAuthController } = require("./modules/auth/auth.controller");
 const { createAuthRouter } = require("./modules/auth/auth.routes");
 
 // buduje aplikacje, ale jej nie uruchamia (listen jest w server.js)
-// config, db i now przychodza jako parametry - app nie czyta process.env, a testy moga ustawic "dzisiaj"
-function createApp({ config, db, now = () => new Date() }) {
+// config, db, eventBus i now przychodza jako parametry - app nie czyta process.env, a testy moga ustawic "dzisiaj"
+function createApp({ config, db, eventBus, now = () => new Date() }) {
   const app = express();
 
   app.use(express.json());
@@ -51,7 +57,12 @@ function createApp({ config, db, now = () => new Date() }) {
   const packagesRepository = createPackagesRepository(db);
   const packagesService = createPackagesService({ packagesRepository, clientsService });
 
-  const sessionsService = createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, now });
+  const sessionsService = createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, eventBus, now });
+
+  const notificationsRepository = createNotificationsRepository(db);
+  const notificationsService = createNotificationsService({ notificationsRepository });
+  // listenery rejestrujemy raz, przy tworzeniu aplikacji
+  registerNotificationListeners({ eventBus, notificationsRepository });
 
   // publiczne: health i logowanie (/me ma authenticate w routerze)
   app.get("/api/health", (req, res) => {
@@ -65,6 +76,7 @@ function createApp({ config, db, now = () => new Date() }) {
   app.use("/api/clients", createClientsRouter(createClientsController(clientsService)));
   app.use("/api/packages", createPackagesRouter(createPackagesController(packagesService)));
   app.use("/api/sessions", createSessionsRouter(createSessionsController(sessionsService)));
+  app.use("/api/notifications", createNotificationsRouter(createNotificationsController(notificationsService)));
 
   // kolejnosc ma znaczenie: najpierw 404 dla nieznanych sciezek, na samym koncu error handler
   app.use(notFound);

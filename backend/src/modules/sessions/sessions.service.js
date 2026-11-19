@@ -27,7 +27,7 @@ function findUsablePackage(packages, startsAt) {
 
 // zaleznosci przychodza z zewnatrz - unit testy podstawiaja zwykle obiekty zamiast bazy
 // now tez jest wstrzykiwane, zeby test mogl ustawic "dzisiaj" na stala date
-function createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, now = () => new Date() }) {
+function createSessionsService({ sessionsRepository, clientsRepository, packagesRepository, eventBus, now = () => new Date() }) {
   // klient istnieje i nalezy do trenera (albo user jest ADMINem); w przeciwnym razie 404
   async function findAccessibleClient(id, currentUser) {
     const client = await clientsRepository.findById(id);
@@ -72,7 +72,7 @@ function createSessionsService({ sessionsRepository, clientsRepository, packages
     }
 
     // INSERT + rezerwacja wejscia w jednej transakcji (ukrytej w repozytorium)
-    return sessionsRepository.createAndUsePackage({
+    const session = await sessionsRepository.createAndUsePackage({
       clientId: client.id,
       trainerId: client.trainerId,
       packageId: pkg.id,
@@ -80,6 +80,19 @@ function createSessionsService({ sessionsRepository, clientsRepository, packages
       endsAt,
       notes: input.notes
     });
+
+    // service tylko emituje zdarzenia i od razu zwraca wynik - nie czeka na powiadomienia
+    // setImmediate: listener rusza dopiero po zakonczeniu biezacej operacji
+    const clientName = `${client.firstName} ${client.lastName}`;
+    setImmediate(() => {
+      eventBus.emit("session.scheduled", { trainerId: client.trainerId, clientName, startsAt });
+      // pakiet.usedSessions to stan sprzed rezerwacji, dlatego +1
+      if (pkg.usedSessions + 1 === pkg.totalSessions) {
+        eventBus.emit("package.exhausted", { trainerId: client.trainerId, clientName, packageName: pkg.name });
+      }
+    });
+
+    return session;
   }
 
   async function list(query, currentUser) {
