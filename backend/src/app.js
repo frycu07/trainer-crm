@@ -1,4 +1,6 @@
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const openapiDocument = require("./docs/openapi");
 const authenticate = require("./middleware/authenticate");
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
@@ -64,10 +66,11 @@ function createApp({ config, db, eventBus, now = () => new Date() }) {
   // listenery rejestrujemy raz, przy tworzeniu aplikacji
   registerNotificationListeners({ eventBus, notificationsRepository });
 
-  // publiczne: health i logowanie (/me ma authenticate w routerze)
+  // publiczne: health, dokumentacja i logowanie (/me ma authenticate w routerze)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiDocument, { customSiteTitle: "Trainer CRM API - docs" }));
   app.use("/api/auth", createAuthRouter(createAuthController(authService), { authenticate: requireAuth }));
 
   // wszystko ponizej wymaga tokenu - nowego endpointu nie da sie "zapomniec" zabezpieczyc
