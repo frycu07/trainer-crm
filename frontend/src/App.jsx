@@ -4,11 +4,9 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ClientsPage from "./pages/ClientsPage.jsx";
 import ClientDetailsPage from "./pages/ClientDetailsPage.jsx";
-
-// strony placeholderowe - kolejne commity zastepuja je prawdziwymi widokami
-function Placeholder({ title }) {
-  return <h1>{title}</h1>;
-}
+import SessionsPage from "./pages/SessionsPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import UsersPage from "./pages/UsersPage.jsx";
 
 export default function App() {
   return (
@@ -17,11 +15,11 @@ export default function App() {
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:id" element={<ClientDetailsPage />} />
-        <Route path="/sessions" element={<Placeholder title="Treningi" />} />
-        <Route path="/notifications" element={<Placeholder title="Powiadomienia" />} />
+        <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route
           path="/users"
-          element={<ProtectedRoute role="ADMIN"><Placeholder title="Użytkownicy" /></ProtectedRoute>}
+          element={<ProtectedRoute role="ADMIN"><UsersPage /></ProtectedRoute>}
         />
       </Route>
       <Route path="*" element={<Navigate to="/clients" replace />} />
