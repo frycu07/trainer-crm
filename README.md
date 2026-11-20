@@ -104,13 +104,9 @@ npm run test:integration
 
 ## Model danych
 
-```
-users 1---* clients 1---* packages 1---* training_sessions
-  |                |                          ^
-  |                +--------------------------+  (client_id)
-  +---* training_sessions (trainer_id)
-  +---* notifications
-```
+Diagram ERD (relacje 1 do N, klucze główne PK i obce FK):
+
+![Diagram ERD](docs/erd.png)
 
 | Tabela | Znaczenie |
 |---|---|
@@ -177,6 +173,7 @@ Kody HTTP: 200, 201, 204 przy sukcesie, 400 walidacja, 401 brak lub zły token, 
 trainer-crm/
 ├── docker-compose.yml           # baza, backend, frontend
 ├── docker/postgres/init.sql     # tworzy bazę testową
+├── docs/erd.png                 # diagram ERD
 ├── .env.example                 # wzór konfiguracji
 ├── .github/workflows/ci.yml
 ├── backend/
