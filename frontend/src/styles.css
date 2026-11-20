@@ -91,3 +91,7 @@ th { background: #e2e8f0; }
 td.actions { justify-content: flex-end; }
 .pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem; }
 button:disabled { opacity: 0.5; cursor: default; }
+
+/* szczegoly klienta */
+h2 { margin-top: 2rem; }
+.card p { margin: 0.25rem 0; }

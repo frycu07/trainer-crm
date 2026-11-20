@@ -3,6 +3,7 @@ import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import ClientsPage from "./pages/ClientsPage.jsx";
+import ClientDetailsPage from "./pages/ClientDetailsPage.jsx";
 
 // strony placeholderowe - kolejne commity zastepuja je prawdziwymi widokami
 function Placeholder({ title }) {
@@ -15,7 +16,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/clients" element={<ClientsPage />} />
-        <Route path="/clients/:id" element={<Placeholder title="Szczegóły klienta" />} />
+        <Route path="/clients/:id" element={<ClientDetailsPage />} />
         <Route path="/sessions" element={<Placeholder title="Treningi" />} />
         <Route path="/notifications" element={<Placeholder title="Powiadomienia" />} />
         <Route
